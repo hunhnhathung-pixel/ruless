@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Đua Vịt Vui Nhộn - Duck Race</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+
+    .game-wrapper {
+      width: 100%;
+      max-width: 900px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Bảng điều khiển */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    label {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    select, input {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      background: #fff;
+      color: #333;
+      outline: none;
+    }
+
+    .btn {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: transform 0.1s, background 0.2s;
+    }
+
+    .btn:hover {
+      background: #45a049;
+      transform: scale(1.05);
+    }
+
+    .btn:disabled {
+      background: #888;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Đường đua */
+    .track-container {
+      position: relative;
+      background: #2b580c;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 4px solid #f6c90e;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    .lane {
+      position: relative;
+      height: 55px;
+      border-bottom: 2px dashed rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      background: #3a7513;
+    }
+
+    .lane:nth-child(even) {
+      background: #2e610e;
+    }
+
+    .lane:last-child {
+      border-bottom: none;
+    }
+
+    .lane-number {
+      width: 35px;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      z-index: 2;
+    }
+
+    /* Vạch đích */
+    .finish-line {
+      position: absolute;
+      right: 50px;
+      top: 0;
+      bottom: 0;
+      width: 20px;
+      background: repeating-linear-gradient(
+        0deg,
+        #fff, #fff 10px,
+        #000 10px, #000 20px
+      );
+      z-index: 1;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+    }
+
+    /* Chú Vịt */
+    .duck {
+      position: absolute;
+      left: 35px;
+      width: 45px;
+      height: 45px;
+      transition: left 0.1s linear;
+      z-index: 3;
+      filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.4));
+    }
+
+    .duck-name {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* Thông báo kết quả */
+    .result-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .result-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .result-content {
+      background: #222;
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      border: 3px solid #f6c90e;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+
+    .result-content h2 {
+      font-size: 28px;
+      color: #f6c90e;
+      margin-bottom: 15px;
+    }
+
+    .winner-duck {
+      font-size: 60px;
+      margin: 15px 0;
+    }
+
+    .podium {
+      margin: 15px 0;
+      font-size: 16px;
+      text-align: left;
+      background: rgba(255,255,255,0.1);
+      padding: 10px 15px;
+      border-radius: 8px;
+    }
+
+    .podium-item {
+      margin: 5px 0;
+    }
+
+    /* Tiền cược */
+    .balance-info {
+      font-size: 16px;
+      font-weight: bold;
+      color: #f6c90e;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🦆 ĐUA VỊT VUI NHỘN 🦆</h1>
+
+  <div class="game-wrapper">
+    <div class="controls">
+      <div class="control-group">
+        <label for="duck-count">Số lượng vịt:</label>
+        <select id="duck-count">
+          <option value="4">4 Con</option>
+          <option value="6" selected>6 Con</option>
+          <option value="8">8 Con</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="bet-duck">Đặt cược Vịt:</label>
+        <select id="bet-duck"></select>
+      </div>
+
+      <div class="control-group">
+        <span class="balance-info">Xu: <span id="balance">100</span>🪙</span>
+      </div>
+
+      <button class="btn" id="start-btn">BẮT ĐẦU ĐUA 🚀</button>
+    </div>
+
+    <div class="track-container" id="track-container">
+      <div class="finish-line"></div>
+      <!-- Các làn đua sẽ được sinh ra bằng JS -->
+    </div>
+  </div>
+
+  <!-- Bảng kết quả -->
+  <div class="result-modal" id="result-modal">
+    <div class="result-content">
+      <h2>KẾT QUẢ ĐUỜNG ĐUA</h2>
+      <div class="winner-duck" id="winner-icon">🦆</div>
+      <h3 id="winner-text" style="color: #fff; margin-bottom: 10px;">Vịt #1 Thắng!</h3>
+      <p id="bet-result" style="font-size: 16px; font-weight: bold; margin-bottom: 15px;"></p>
+      
+      <div class="podium" id="podium"></div>
+
+      <button class="btn" id="close-modal-btn">ĐUA TIẾP 🔄</button>
+    </div>
+  </div>
+
+  <script>
+    const DUCK_COLORS = [
+      { name: 'Vịt Vàng', color: '#ffea00', icon: '🦆' },
+      { name: 'Vịt Đỏ', color: '#ff3d00', icon: '🦆' },
+      { name: 'Vịt Xanh Lá', color: '#00e676', icon: '🦆' },
+      { name: 'Vịt Xanh Dương', color: '#00b0ff', icon: '🦆' },
+      { name: 'Vịt Tím', color: '#d500f9', icon: '🦆' },
+      { name: 'Vịt Cam', color: '#ff9100', icon: '🦆' },
+      { name: 'Vịt Hồng', color: '#ff4081', icon: '🦆' },
+      { name: 'Vịt Trắng', color: '#ffffff', icon: '🦆' }
+    ];
+
+    const duckCountSelect = document.getElementById('duck-count');
+    const betDuckSelect = document.getElementById('bet-duck');
+    const startBtn = document.getElementById('start-btn');
+    const trackContainer = document.getElementById('track-container');
+    const balanceEl = document.getElementById('balance');
+    const resultModal = document.getElementById('result-modal');
+    const winnerIcon = document.getElementById('winner-icon');
+    const winnerText = document.getElementById('winnerText');
+    const betResultEl = document.getElementById('bet-result');
+    const podiumEl = document.getElementById('podium');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+    let ducks = [];
+    let isRacing = false;
+    let raceInterval = null;
+    let balance = 100;
+
+    // Web Audio API Âm thanh
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+
+      if (type === 'quack') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.linearRampToValueAtTime(200, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'win') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.setValueAtTime(400, now + 0.1);
+        osc.frequency.setValueAtTime(500, now + 0.2);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
+    }
+
+    // Tạo SVG Vịt đổi màu theo cấu hình
+    function getDuckSVG(color) {
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+          <!-- Thân vịt -->
+          <path d="M20,60 Q20,85 55,85 Q85,85 85,60 Q85,45 65,45 Q55,45 50,35 Q45,20 60,15 Q50,5 35,15 Q25,25 35,40 Q20,45 20,60 Z" fill="${color}"/>
+          <!-- Mỏ vịt -->
+          <path d="M55,20 Q70,22 65,28 Q55,30 50,25 Z" fill="#ff6d00"/>
+          <!-- Mắt vịt -->
+          <circle cx="42" cy="18" r="4" fill="#fff"/>
+          <circle cx="43" cy="18" r="2" fill="#000"/>
+          <!-- Cánh -->
+          <path d="M35,62 Q50,52 60,65 Q45,75 35,62 Z" fill="rgba(0,0,0,0.15)"/>
+        </svg>
+      `;
+    }
+
+    // Khởi tạo các làn đua
+    function setupTrack() {
+      const count = parseInt(duckCountSelect.value);
+      trackContainer.innerHTML = '<div class="finish-line"></div>';
+      betDuckSelect.innerHTML = '';
+      ducks = [];
+
+      for (let i = 0; i < count; i++) {
+        const duckData = DUCK_COLORS[i];
+        
+        // Tạo làn đua
+        const lane = document.createElement('div');
+        lane.className = 'lane';
+
+        const laneNum = document.createElement('div');
+        laneNum.className = 'lane-number';
+        laneNum.textContent = i + 1;
+        lane.appendChild(laneNum);
+
+        // Tạo con vịt
+        const duckEl = document.createElement('div');
+        duckEl.className = 'duck';
+        duckEl.style.left = '35px';
+        duckEl.innerHTML = `
+          <div class="duck-name">${duckData.name}</div>
+          ${getDuckSVG(duckData.color)}
+        `;
+
+        lane.appendChild(duckEl);
+        trackContainer.appendChild(lane);
+
+        ducks.push({
+          id: i + 1,
+          name: duckData.name,
+          color: duckData.color,
+          element: duckEl,
+          position: 35,
+          finished: false
+        });
+
+        // Thêm vào danh sách đặt cược
+        const option = document.createElement('option');
+        option.value = i + 1;
+        option.textContent = `#${i + 1} - ${duckData.name}`;
+        betDuckSelect.appendChild(option);
+      }
+    }
+
+    // Bắt đầu đua
+    function startRace() {
+      if (isRacing) return;
+
+      if (balance < 10) {
+        alert("Bạn đã hết xu! Hệ thống sẽ tặng bạn 50 xu để tiếp tục chơi.");
+        balance = 50;
+        balanceEl.textContent = balance;
+      }
+
+      // Trừ tiền cược
+      balance -= 10;
+      balanceEl.textContent = balance;
+
+      isRacing = true;
+      startBtn.disabled = true;
+      duckCountSelect.disabled = true;
+      betDuckSelect.disabled = true;
+
+      // Reset vị trí
+      ducks.forEach(duck => {
+        duck.position = 35;
+        duck.element.style.left = '35px';
+        duck.finished = false;
+      });
+
+      const finishPosition = trackContainer.clientWidth - 95;
+      const rankList = [];
+
+      playSound('quack');
+
+      // Vòng lặp đua
+      raceInterval = setInterval(() => {
+        let allFinished = true;
+
+        ducks.forEach(duck => {
+          if (!duck.finished) {
+            allFinished = false;
+
+            // Tốc độ ngẫu nhiên + hiệu ứng tăng tốc đột biến
+            let speed = Math.random() * 3 + 1;
+            if (Math.random() < 0.08) speed += 6; // Bứt phá
+            if (Math.random() < 0.05) speed -= 2; // Vấp ngã nhẹ
+
+            duck.position += speed;
+
+            if (duck.position >= finishPosition) {
+              duck.position = finishPosition;
+              duck.finished = true;
+              rankList.push(duck);
+            }
+
+            duck.element.style.left = `${duck.position}px`;
+          }
+        });
+
+        if (allFinished || rankList.length === ducks.length) {
+          clearInterval(raceInterval);
+          finishRace(rankList);
+        }
+      }, 50);
+    }
+
+    // Kết thúc cuộc đua
+    function finishRace(rankList) {
+      isRacing = false;
+      playSound('win');
+
+      const winner = rankList[0];
+      const betDuckId = parseInt(betDuckSelect.value);
+
+      winnerIcon.innerHTML = getDuckSVG(winner.color);
+      winnerText.textContent = `${winner.name} (#${winner.id}) Về Nhất!`;
+
+      // Kiểm tra kết quả cược
+      if (winner.id === betDuckId) {
+        const reward = 50;
+        balance += reward;
+        balanceEl.textContent = balance;
+        betResultEl.style.color = '#2ecc71';
+        betResultEl.textContent = `🎉 CHÚC MỪNG! Bạn đoán đúng và nhận +${reward} xu!`;
+      } else {
+        betResultEl.style.color = '#e74c3c';
+        betResultEl.textContent = `❌ Rất tiếc! Bạn đã thua 10 xu cược.`;
+      }
+
+      // Bảng xếp hạng Top 3
+      podiumEl.innerHTML = `
+        <div class="podium-item">🥇 <b>Hạng 1:</b> ${rankList[0].name}</div>
+        <div class="podium-item">🥈 <b>Hạng 2:</b> ${rankList[1] ? rankList[1].name : 'N/A'}</div>
+        <div class="podium-item">🥉 <b>Hạng 3:</b> ${rankList[2] ? rankList[2].name : 'N/A'}</div>
+      `;
+
+      resultModal.classList.add('show');
+    }
+
+    // Event Listeners
+    duckCountSelect.addEventListener('change', setupTrack);
+    startBtn.addEventListener('click', startRace);
+
+    closeModalBtn.addEventListener('click', () => {
+      resultModal.classList.remove('show');
+      startBtn.disabled = false;
+      duckCountSelect.disabled = false;
+      betDuckSelect.disabled = false;
+      setupTrack();
+    });
+
+    // Khởi tạo ban đầu
+    setupTrack();
+  </script>
+</body>
+</html>
